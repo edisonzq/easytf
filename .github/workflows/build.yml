@@ -1,5 +1,7 @@
 name: build
 on: [push]
+env:
+  CRYPTOGRAPHY_ALLOW_OPENSSL_102: true
 jobs:
   build:
     runs-on: self-hosted

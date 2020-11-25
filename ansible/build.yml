@@ -1,8 +1,6 @@
 - name: Build docker image
   hosts: localhost
   gather_facts: false
-  environment:
-    CRYPTOGRAPHY_ALLOW_OPENSSL_102: true
 
   tasks:
     - name: query commit version
