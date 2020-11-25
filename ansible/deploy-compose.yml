@@ -1,0 +1,68 @@
+- name: Deploy with docker-compose
+  hosts: "{{ deploy_env }}"
+  become: true
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: /usr/bin/python
+  environment:
+    CRYPTOGRAPHY_ALLOW_OPENSSL_102: true
+
+  tasks:
+    - name: query commit version
+      become: false
+      shell: git rev-parse HEAD
+      register: git_result
+      connection: local
+      run_once: true
+    - set_fact: git_commit={{ git_result.stdout }}
+    - debug:
+        msg: git_commit={{ git_commit }}
+
+    - name: docker login
+      docker_login:
+        username: "{{ docker_login.username }}"
+        password: "{{ docker_login.password }}"
+        registry_url: "{{ docker_login.registry_url }}"
+
+    - name: copy docker-compose.yml
+      copy: >
+        src=../docker-compose.yml
+        dest={{ deploy.dir }}
+
+    - name: copy local files
+      copy: >
+        src={{ item }}
+        dest={{ deploy.dir }}
+      with_items: "{{ deploy.copy_files }}"
+      when: deploy.copy_files is defined
+
+    - name: create dirs
+      file:
+        path: "{{ deploy.dir }}/{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0755
+        access_time: now
+      with_items: "{{ deploy.create_dirs }}"
+      when: deploy.create_dirs is defined
+
+    - name: docker-compose down
+      docker_compose:
+        project_src: "{{ deploy.dir }}"
+        state: absent
+
+    - name: docker-compose up
+      docker_compose:
+        project_src: "{{ deploy.dir }}"
+        state: present
+        pull: true
+
+    - name: wait for all service ready
+      become: false
+      wait_for:
+        host: "{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}"
+        port: "{{ item }}"
+        timeout: 300
+      connection: local
+      with_items: "{{ deploy.readiness_probe.ports }}"

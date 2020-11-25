@@ -1,0 +1,6 @@
+build:
+  src: ..
+  image: hub.baidubce.com/yy-se/yy-test
+
+deploy:
+  dir: /home/zhangqi/run/yy-test

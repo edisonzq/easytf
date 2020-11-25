@@ -1,0 +1,28 @@
+- name: Build docker image
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: query commit version
+      shell: git rev-parse HEAD
+      register: git_result
+    - set_fact: git_commit={{ git_result.stdout }}
+    - debug:
+        msg: git_commit={{ git_commit }}
+
+    - name: docker build
+      docker_image:
+        name: "{{ build.image }}:{{ git_commit }}"
+        source: build
+        build:
+          pull: true
+          path: "{{ build.src }}"
+        push: true
+
+    - name: add tag latest to image
+      docker_image:
+        name: "{{ build.image }}:{{ git_commit }}"
+        repository: "{{ build.image }}:latest"
+        force_tag: yes
+        source: local
+        push: true
