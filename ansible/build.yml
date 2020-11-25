@@ -3,10 +3,14 @@
   gather_facts: false
 
   tasks:
-    - name: query commit version
+    - name: query commit version from github action
+      set_fact: git_commit={{ lookup('env', 'GITHUB_SHA') }}
+    - name: query commit version from git command
       shell: git rev-parse HEAD
       register: git_result
+      when: git_commit == ""
     - set_fact: git_commit={{ git_result.stdout }}
+      when: git_commit == ""
     - debug:
         msg: git_commit={{ git_commit }}
 
